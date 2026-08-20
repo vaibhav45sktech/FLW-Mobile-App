@@ -61,8 +61,13 @@ import org.piramalswasthya.sakhi.database.room.dao.dynamicSchemaDao.FormResponse
 import org.piramalswasthya.sakhi.database.room.dao.dynamicSchemaDao.FormSchemaDao
 import org.piramalswasthya.sakhi.database.room.dao.dynamicSchemaDao.InfantDao
 import org.piramalswasthya.sakhi.database.room.dao.MonthlyRecapDao
+import org.piramalswasthya.sakhi.database.room.dao.BadgeDao
 import org.piramalswasthya.sakhi.model.ABHAModel
 import org.piramalswasthya.sakhi.model.MonthlyRecapCache
+import org.piramalswasthya.sakhi.model.BadgeAwardCache
+import org.piramalswasthya.sakhi.model.BadgeMonthClaimCache
+import org.piramalswasthya.sakhi.model.BadgeObservationCache
+import org.piramalswasthya.sakhi.model.BadgeStreakWindowCache
 import org.piramalswasthya.sakhi.helpers.DatabaseKeyManager
 import org.piramalswasthya.sakhi.helpers.RoomDbEncryptionHelper
 import org.piramalswasthya.sakhi.database.room.dao.dynamicSchemaDao.FilariaMdaCampaignJsonDao
@@ -206,10 +211,14 @@ import org.piramalswasthya.sakhi.model.dynamicEntity.mosquitonetEntity.MosquitoN
         FilariaMDACampaignFormResponseJsonEntity::class,
         TBConfirmedTreatmentCache::class,
         NotificationEntity::class,
-        MonthlyRecapCache::class
+        MonthlyRecapCache::class,
+        BadgeAwardCache::class,
+        BadgeStreakWindowCache::class,
+        BadgeObservationCache::class,
+        BadgeMonthClaimCache::class
     ],
     views = [BenBasicCache::class],
-    version = 64, exportSchema = false
+    version = 65, exportSchema = false
 )
 
 @TypeConverters(
@@ -255,6 +264,7 @@ abstract class InAppDb : RoomDatabase() {
     abstract val generalOpdDao: GeneralOpdDao
     abstract val maaMeetingDao: MaaMeetingDao
     abstract val monthlyRecapDao: MonthlyRecapDao
+    abstract val badgeDao: BadgeDao
     abstract val uwinDao: UwinDao
 
     abstract val referalDao: NcdReferalDao
@@ -284,6 +294,66 @@ abstract class InAppDb : RoomDatabase() {
         const val MIGRATION_60_61_NORMALIZE_ISDEATH_SQL =
             "UPDATE BENEFICIARY SET isDeath = 0 " +
                     "WHERE isDeath IS NULL OR (isDeath <> 0 AND isDeath <> 1)"
+
+        // ── Badges foundation (MIGRATION_64_65) ─────────────────────────────
+        // Three badge-owned tables, additive only. Exposed as consts so the JVM
+        // migration test can execute the exact SQL the migration runs (the same
+        // pattern MIGRATION_60_61 uses). Badges never write clinical tables.
+        //
+        // BADGE_AWARD.occurrenceKey is NOT NULL deliberately: SQLite treats NULLs
+        // as DISTINCT inside UNIQUE indexes, so a nullable key would allow the
+        // same award to be inserted twice.
+        const val CREATE_BADGE_AWARD_SQL =
+            "CREATE TABLE IF NOT EXISTS `BADGE_AWARD` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`userId` INTEGER NOT NULL, " +
+                    "`badgeId` TEXT NOT NULL, " +
+                    "`tier` INTEGER NOT NULL, " +
+                    "`occurrenceKey` TEXT NOT NULL, " +
+                    "`streakRunId` TEXT NOT NULL, " +
+                    "`earnedAt` INTEGER NOT NULL, " +
+                    "`createdAt` INTEGER NOT NULL)"
+
+        const val CREATE_BADGE_AWARD_INDEX_SQL =
+            "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                    "`index_BADGE_AWARD_userId_badgeId_tier_occurrenceKey` " +
+                    "ON `BADGE_AWARD` (`userId`, `badgeId`, `tier`, `occurrenceKey`)"
+
+        const val CREATE_BADGE_STREAK_WINDOW_SQL =
+            "CREATE TABLE IF NOT EXISTS `BADGE_STREAK_WINDOW` (" +
+                    "`userId` INTEGER NOT NULL, " +
+                    "`badgeId` TEXT NOT NULL, " +
+                    "`streakRunId` TEXT NOT NULL, " +
+                    "`windowIndex` INTEGER NOT NULL, " +
+                    "`windowStartMillis` INTEGER NOT NULL, " +
+                    "`windowEndMillis` INTEGER NOT NULL, " +
+                    "`state` TEXT NOT NULL, " +
+                    "`graceAllowanceAfter` INTEGER NOT NULL, " +
+                    "`advanceCountAfter` INTEGER NOT NULL, " +
+                    "`closedAt` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`userId`, `badgeId`, `streakRunId`, `windowIndex`))"
+
+        const val CREATE_BADGE_MONTH_CLAIM_SQL =
+            "CREATE TABLE IF NOT EXISTS `BADGE_MONTH_CLAIM` (" +
+                    "`userId` INTEGER NOT NULL, " +
+                    "`yearMonth` INTEGER NOT NULL, " +
+                    "`firstClaimAtMillis` INTEGER NOT NULL, " +
+                    "`observedAt` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`userId`, `yearMonth`))"
+
+        const val CREATE_BADGE_OBSERVATION_SQL =
+            "CREATE TABLE IF NOT EXISTS `BADGE_OBSERVATION` (" +
+                    "`userId` INTEGER NOT NULL, " +
+                    "`observationDay` INTEGER NOT NULL, " +
+                    "`observedAt` INTEGER NOT NULL, " +
+                    "`gateEnabled` INTEGER NOT NULL, " +
+                    "`manualSyncCount` INTEGER NOT NULL, " +
+                    "`qualifyingSync` INTEGER NOT NULL, " +
+                    "`backlogNonzeroSeen` INTEGER NOT NULL, " +
+                    "`backlogZeroSeen` INTEGER NOT NULL, " +
+                    "`pendingSyncRequestAt` INTEGER, " +
+                    "`pendingBacklogBefore` INTEGER, " +
+                    "PRIMARY KEY(`userId`, `observationDay`))"
 
         fun tableExists(db: SupportSQLiteDatabase, tableName: String): Boolean {
             val cursor = db.query(
@@ -448,6 +518,21 @@ abstract class InAppDb : RoomDatabase() {
                                 "`index_MONTHLY_RECAP_userId_recapYearMonth` " +
                                 "ON `MONTHLY_RECAP` (`userId`, `recapYearMonth`)"
                     )
+                }
+            }
+
+            // Badges foundation: BADGE_AWARD (insert-only earned tiers),
+            // BADGE_STREAK_WINDOW (closed streak windows) and BADGE_OBSERVATION
+            // (daily evidence ledger). Additive only — no existing table, data or
+            // encryption behaviour changes. SQL lives in companion consts so the
+            // JVM migration test runs the identical statements.
+            val MIGRATION_64_65 = object : Migration(64, 65) {
+                override fun migrate(database: SupportSQLiteDatabase) {
+                    database.execSQL(CREATE_BADGE_AWARD_SQL)
+                    database.execSQL(CREATE_BADGE_AWARD_INDEX_SQL)
+                    database.execSQL(CREATE_BADGE_STREAK_WINDOW_SQL)
+                    database.execSQL(CREATE_BADGE_OBSERVATION_SQL)
+                    database.execSQL(CREATE_BADGE_MONTH_CLAIM_SQL)
                 }
             }
 
@@ -3507,7 +3592,8 @@ abstract class InAppDb : RoomDatabase() {
                         MIGRATION_60_61,
                         MIGRATION_61_62,
                         MIGRATION_62_63,
-                        MIGRATION_63_64
+                        MIGRATION_63_64,
+                        MIGRATION_64_65
 
 
                     ).build()
