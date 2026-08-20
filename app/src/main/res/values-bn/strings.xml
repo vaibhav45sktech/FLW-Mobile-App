@@ -1472,4 +1472,26 @@
     <string name="notification_recap_channel_description">আপনার মাসিক রিক্যাপ দেখার একটি মাসিক অনুস্মারক</string>
     <string name="notification_recap_title">আপনার মাস, ৭৫ সেকেন্ডে</string>
     <string name="notification_recap_body">গত মাসের আপনার রিক্যাপ প্রস্তুত। দেখতে ট্যাপ করুন।</string>
+    <!-- Badges (gamification) -->
+    <string name="badges_title">আমার ব্যাজ</string>
+    <string name="badge_steady_syncer">নিয়মিত সিংক</string>
+    <string name="badge_ceremony_title">অভিনন্দন!</string>
+    <string name="badge_ceremony_subtitle">%1$d সপ্তাহ ধরে নিয়মিত সিংক — আপনার রেকর্ড প্রতি সপ্তাহে স্বাস্থ্য ব্যবস্থায় পৌঁছেছে।</string>
+    <string name="badge_continue">এগিয়ে যান</string>
+    <string name="badge_progress_weeks">%1$d/%2$d</string>
+    <string name="badge_next_tier">পরবর্তী ব্যাজ %1$d সপ্তাহ সিংক করলে</string>
+    <string name="badge_all_tiers_done">সব ব্যাজ অর্জিত — অসাধারণ!</string>
+    <string name="badge_streak_not_started">আপনার প্রথম সিংক থেকে যাত্রা শুরু হবে</string>
+    <string name="badge_streak_paused">এই সপ্তাহে সিংক করুন এবং নতুন করে শুরু করুন</string>
+    <string name="badge_streak_alive">দারুণ — এভাবেই চালিয়ে যান!</string>
+    <string name="badge_timely_reporter">সময়মতো রিপোর্ট</string>
+    <string name="badge_next_tier_months">পরবর্তী ব্যাজ %1$d মাস সময়মতো দাবি করলে</string>
+    <string name="badge_timely_not_started">৫ তারিখের মধ্যে দাবি করে শুরু করুন</string>
+    <string name="badge_ceremony_subtitle_months">%1$d মাস সময়মতো দাবি — এমন নিয়মিততা যা কেউ খেয়াল করে না।</string>
+    <string name="badge_complete_worker">সম্পূর্ণ সেবিকা</string>
+    <string name="badge_complete_worker_earned">এই ত্রৈমাসিকে অর্জিত — যত্নের দুর্দান্ত পরিসর!</string>
+    <string name="badge_complete_worker_progress">বিভিন্ন ক্ষেত্রে যত্ন নিলে এই ব্যাজ পাওয়া যায়</string>
+    <string name="badge_complete_worker_domains_needed">এই ত্রৈমাসিকে %1$d টি ক্ষেত্রে কাজ করুন</string>
+    <string name="badge_complete_worker_next_quarter">পরবর্তী ত্রৈমাসিকে আবার অর্জন করুন</string>
+    <string name="badge_ceremony_subtitle_domains">এই ত্রৈমাসিকে %1$d টি বিভিন্ন ক্ষেত্রে যত্ন — পুরো গ্রাম এই পরিসর অনুভব করে।</string>
 </resources>

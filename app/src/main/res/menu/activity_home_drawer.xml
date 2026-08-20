@@ -25,6 +25,15 @@
 
     <group>
         <item
+            android:id="@+id/nav_badges"
+            android:checkable="false"
+            android:icon="@android:drawable/btn_star_big_on"
+            android:title="@string/badges_title"
+            android:visible="false" />
+    </group>
+
+    <group>
+        <item
             android:id="@+id/sync_pending_records"
             android:checkable="false"
             android:icon="@drawable/ic_synced"

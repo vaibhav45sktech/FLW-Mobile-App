@@ -1439,4 +1439,26 @@
     <string name="notification_recap_channel_description">आपके मासिक रीकैप को देखने की मासिक याद दिलाना</string>
     <string name="notification_recap_title">आपका महीना, 75 सेकंड में</string>
     <string name="notification_recap_body">पिछले महीने का आपका रीकैप तैयार है। देखने के लिए टैप करें।</string>
+    <!-- Badges (gamification) -->
+    <string name="badges_title">मेरे बैज</string>
+    <string name="badge_steady_syncer">नियमित सिंक</string>
+    <string name="badge_ceremony_title">बधाई हो!</string>
+    <string name="badge_ceremony_subtitle">%1$d सप्ताह लगातार सिंक — आपके रिकॉर्ड हर हफ़्ते स्वास्थ्य प्रणाली तक पहुँचे।</string>
+    <string name="badge_continue">आगे बढ़ें</string>
+    <string name="badge_progress_weeks">%1$d/%2$d</string>
+    <string name="badge_next_tier">अगला बैज %1$d सप्ताह सिंक करने पर</string>
+    <string name="badge_all_tiers_done">सभी बैज मिल गए — शानदार!</string>
+    <string name="badge_streak_not_started">आपकी पहली सिंक से आपका सफ़र शुरू होगा</string>
+    <string name="badge_streak_paused">इस हफ़्ते सिंक करें और नया सफ़र शुरू करें</string>
+    <string name="badge_streak_alive">बहुत बढ़िया — ऐसे ही करती रहें!</string>
+    <string name="badge_timely_reporter">समय पर रिपोर्ट</string>
+    <string name="badge_next_tier_months">अगला बैज %1$d महीने समय पर दावा करने पर</string>
+    <string name="badge_timely_not_started">5 तारीख तक दावा करें और शुरुआत करें</string>
+    <string name="badge_ceremony_subtitle_months">%1$d महीने समय पर दावा — ऐसी नियमितता जिस पर किसी की नज़र नहीं जाती।</string>
+    <string name="badge_complete_worker">सम्पूर्ण सेविका</string>
+    <string name="badge_complete_worker_earned">इस तिमाही में मिला — देखभाल का शानदार दायरा!</string>
+    <string name="badge_complete_worker_progress">अलग-अलग क्षेत्रों में देखभाल से यह बैज मिलता है</string>
+    <string name="badge_complete_worker_domains_needed">इस तिमाही %1$d क्षेत्रों में काम करें</string>
+    <string name="badge_complete_worker_next_quarter">अगली तिमाही में फिर से पाएँ</string>
+    <string name="badge_ceremony_subtitle_domains">इस तिमाही %1$d अलग-अलग क्षेत्रों में देखभाल — पूरा गाँव इस दायरे को महसूस करता है।</string>
 </resources>

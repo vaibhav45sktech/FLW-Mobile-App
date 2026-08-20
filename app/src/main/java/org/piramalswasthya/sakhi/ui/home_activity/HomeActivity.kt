@@ -56,9 +56,15 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.piramalswasthya.sakhi.BuildConfig
 import org.piramalswasthya.sakhi.R
+import org.piramalswasthya.sakhi.helpers.BadgeGates
+import org.piramalswasthya.sakhi.repositories.BadgeRepository
+import org.piramalswasthya.sakhi.ui.home_activity.badges.BadgeCeremonyDialogFragment
+import org.piramalswasthya.sakhi.ui.home_activity.badges.BadgesActivity
 import org.piramalswasthya.sakhi.database.shared_preferences.PreferenceDao
 import org.piramalswasthya.sakhi.helpers.AccountDeactivationManager
 import org.piramalswasthya.sakhi.helpers.TokenExpiryManager
@@ -95,6 +101,8 @@ class HomeActivity : AppCompatActivity(), MessageUpdate {
     var isChatSupportEnabled : Boolean = false
     private lateinit var updateHelper: InAppUpdateHelper
     @Inject lateinit var analyticsHelper: AnalyticsHelper
+
+    @Inject lateinit var badgeRepository: BadgeRepository
 
     private lateinit var inAppUpdateHelper: InAppUpdateHelper
 
@@ -562,9 +570,40 @@ class HomeActivity : AppCompatActivity(), MessageUpdate {
         window.decorView.alpha = 0f
     }
 
+    /**
+     * Badges (S4 wiring): one background tick per app-open — records today's
+     * observation, rolls the streak forward, and if a tier was NEWLY persisted
+     * shows the award ceremony. Runs off the main thread; failures are swallowed
+     * (gamification must never affect the clinical app).
+     */
+    private fun runBadgeTick() {
+        val gateOn = BadgeGates.isBadgesEnabled(this)
+        // Release-safe visibility: an ASHA never sees a drawer entry that leads
+        // to a screen where nothing can ever be earned. Debug always shows it.
+        binding.navView.menu.findItem(R.id.nav_badges)?.isVisible = gateOn
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val newAwards = badgeRepository.onAppOpened(gateOn)
+                val top = newAwards.maxByOrNull { it.tier } ?: return@launch
+                withContext(Dispatchers.Main) {
+                    if (!isFinishing && !isDestroyed &&
+                        supportFragmentManager
+                            .findFragmentByTag(BadgeCeremonyDialogFragment.TAG) == null
+                    ) {
+                        BadgeCeremonyDialogFragment.newInstance(top.badgeId, top.tier)
+                            .show(supportFragmentManager, BadgeCeremonyDialogFragment.TAG)
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Badge tick failed")
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         window.decorView.alpha = 1f
+        runBadgeTick()
         if (!BuildConfig.DEBUG && isDeviceRootedOrEmulator()) {
             AlertDialog.Builder(this)
                 .setTitle("Unsupported Device")
@@ -749,11 +788,28 @@ class HomeActivity : AppCompatActivity(), MessageUpdate {
             lastClickTime = SystemClock.elapsedRealtime()
 
             WorkerUtils.triggerAmritPushWorker(this)
+            // Badges: record the manual-sync intent + backlog snapshot. Sits BELOW
+            // the 15-min debounce on purpose — only taps that really launched the
+            // chain count as evidence. Read-only on clinical data.
+            if (BadgeGates.isBadgesEnabled(this)) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        badgeRepository.onManualSyncFired()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Badge sync observation failed")
+                    }
+                }
+            }
             if (!pref.isFullPullComplete)
                 WorkerUtils.triggerAmritPullWorker(this)
             binding.drawerLayout.close()
             true
 
+        }
+        binding.navView.menu.findItem(R.id.nav_badges)?.setOnMenuItemClickListener {
+            startActivity(Intent(this, BadgesActivity::class.java))
+            binding.drawerLayout.close()
+            true
         }
 
         binding.navView.menu.findItem(R.id.syncDashboardFragment).setOnMenuItemClickListener {

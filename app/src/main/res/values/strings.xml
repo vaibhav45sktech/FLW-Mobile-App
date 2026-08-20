@@ -1619,5 +1619,28 @@
     <string name="notification_recap_channel_description">A monthly reminder to watch your personal recap</string>
     <string name="notification_recap_title">Your month, in 75 seconds</string>
     <string name="notification_recap_body">Your recap for last month is ready. Tap to watch it.</string>
+    <!-- Badges (gamification). Status lines are deliberately warm and mechanics-free:
+         no grace counts, no failure framing (concept-note language principle). -->
+    <string name="badges_title">My Badges</string>
+    <string name="badge_steady_syncer">Steady Syncer</string>
+    <string name="badge_ceremony_title">Congratulations!</string>
+    <string name="badge_ceremony_subtitle">%1$d weeks of steady syncing — your records reached the health system, week after week.</string>
+    <string name="badge_continue">Continue</string>
+    <string name="badge_progress_weeks">%1$d/%2$d</string>
+    <string name="badge_next_tier">Next badge at %1$d weeks of syncing</string>
+    <string name="badge_all_tiers_done">All badges earned — extraordinary!</string>
+    <string name="badge_streak_not_started">Your journey begins with your first sync</string>
+    <string name="badge_streak_paused">Sync this week to begin a new journey</string>
+    <string name="badge_streak_alive">Going strong — wonderful work, keep it up!</string>
+    <string name="badge_timely_reporter">Timely Reporter</string>
+    <string name="badge_next_tier_months">Next badge at %1$d months of on-time claims</string>
+    <string name="badge_timely_not_started">Claim your incentive by the 5th to begin</string>
+    <string name="badge_ceremony_subtitle_months">%1$d months claimed on time — reliability that rarely gets noticed.</string>
+    <string name="badge_complete_worker">Complete Worker</string>
+    <string name="badge_complete_worker_earned">Earned this quarter — wonderful range of care!</string>
+    <string name="badge_complete_worker_progress">Care across different areas earns this badge</string>
+    <string name="badge_complete_worker_domains_needed">Work in %1$d areas of care this quarter</string>
+    <string name="badge_complete_worker_next_quarter">Earn it again next quarter</string>
+    <string name="badge_ceremony_subtitle_domains">Care across %1$d different areas this quarter — the whole village feels that range.</string>
 </resources>
 

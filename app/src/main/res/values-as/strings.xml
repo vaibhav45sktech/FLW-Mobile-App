@@ -1486,4 +1486,26 @@
     <string name="notification_recap_channel_description">আপোনাৰ মাহেকীয়া ৰিকেপ চাবলৈ মনত পেলোৱা</string>
     <string name="notification_recap_title">আপোনাৰ মাহ, ৭৫ ছেকেণ্ডত</string>
     <string name="notification_recap_body">যোৱা মাহৰ আপোনাৰ ৰিকেপ সাজু। চাবলৈ টিপক।</string>
+    <!-- Badges (gamification) -->
+    <string name="badges_title">মোৰ বেজসমূহ</string>
+    <string name="badge_steady_syncer">নিয়মীয়া ছিংক</string>
+    <string name="badge_ceremony_title">অভিনন্দন!</string>
+    <string name="badge_ceremony_subtitle">%1$d সপ্তাহ ধৰি নিয়মীয়া ছিংক — আপোনাৰ ৰেকৰ্ডসমূহ প্ৰতি সপ্তাহে স্বাস্থ্য ব্যৱস্থালৈ পালে।</string>
+    <string name="badge_continue">আগবাঢ়ক</string>
+    <string name="badge_progress_weeks">%1$d/%2$d</string>
+    <string name="badge_next_tier">পৰৱৰ্তী বেজ %1$d সপ্তাহ ছিংক কৰাত</string>
+    <string name="badge_all_tiers_done">সকলো বেজ লাভ কৰিলে — অসাধাৰণ!</string>
+    <string name="badge_streak_not_started">আপোনাৰ প্ৰথম ছিংকৰ পৰা যাত্ৰা আৰম্ভ হ\'ব</string>
+    <string name="badge_streak_paused">এই সপ্তাহত ছিংক কৰক আৰু নতুনকৈ আৰম্ভ কৰক</string>
+    <string name="badge_streak_alive">খুব ভাল — এনেদৰেই কৰি থাকক!</string>
+    <string name="badge_timely_reporter">সময়মতে ৰিপৰ্ট</string>
+    <string name="badge_next_tier_months">পৰৱৰ্তী বেজ %1$d মাহ সময়মতে দাবী কৰাত</string>
+    <string name="badge_timely_not_started">৫ তাৰিখৰ ভিতৰত দাবী কৰি আৰম্ভ কৰক</string>
+    <string name="badge_ceremony_subtitle_months">%1$d মাহ সময়মতে দাবী — এনে নিয়মীয়াতা যিটো কোনেও লক্ষ্য নকৰে।</string>
+    <string name="badge_complete_worker">সম্পূৰ্ণ সেৱিকা</string>
+    <string name="badge_complete_worker_earned">এই ত্ৰৈমাসিকত লাভ কৰিলে — যত্নৰ অসাধাৰণ পৰিসৰ!</string>
+    <string name="badge_complete_worker_progress">বিভিন্ন ক্ষেত্ৰত যত্ন ল\'লে এই বেজ পোৱা যায়</string>
+    <string name="badge_complete_worker_domains_needed">এই ত্ৰৈমাসিকত %1$d টা ক্ষেত্ৰত কাম কৰক</string>
+    <string name="badge_complete_worker_next_quarter">পৰৱৰ্তী ত্ৰৈমাসিকত আকৌ লাভ কৰক</string>
+    <string name="badge_ceremony_subtitle_domains">এই ত্ৰৈমাসিকত %1$d টা বিভিন্ন ক্ষেত্ৰত যত্ন — গোটেই গাঁৱে এই পৰিসৰ অনুভৱ কৰে।</string>
 </resources>

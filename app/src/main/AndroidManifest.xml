@@ -48,6 +48,11 @@
             android:name=".ui.service_location_activity.ServiceLocationActivity"
             android:exported="false" />
         <activity
+            android:name=".ui.home_activity.badges.BadgesActivity"
+            android:exported="false"
+            android:label="@string/badges_title"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".ui.abha_id_activity.AbhaIdActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize">
