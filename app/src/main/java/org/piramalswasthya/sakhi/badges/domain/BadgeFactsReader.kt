@@ -235,6 +235,12 @@ class BadgeFactsReader @Inject constructor(
      * Vulnerable Baby Cared For: LBW (<2.5kg) or SNCU babies with all seven
      * HBNC visits (days 1,3,7,14,21,28,42) completed. HBNC.benId is the
      * infant's beneficiary id → INFANT_REG.childBenId.
+     *
+     * INFANT_REG.weight is GRAMS, not kilograms: the registration form is
+     * "Weight at Birth ( grams )" with a 500..6000 range. Comparing it against
+     * 2.5 matched no real LBW baby (2200 grams is not < 2.5) while matching
+     * every unfilled row, whose weight defaults to 0. Hence 2500, with 0 and
+     * NULL treated as "weight unknown" — such a baby qualifies only via SNCU.
      */
     fun vulnerableBabiesCaredFor(): List<String> = safely("vulnerableBabies", emptyList()) {
         if (!tableExists("HBNC") || !tableExists("INFANT_REG")) return@safely emptyList()
@@ -242,7 +248,7 @@ class BadgeFactsReader @Inject constructor(
             """
             SELECT h.benId FROM HBNC h
             JOIN INFANT_REG i ON i.childBenId = h.benId
-            WHERE (i.isSNCU = 'Yes' OR IFNULL(i.weight, 99) < 2.5)
+            WHERE (i.isSNCU = 'Yes' OR (IFNULL(i.weight, 0) > 0 AND i.weight < 2500))
               AND h.homeVisitDate IN (1,3,7,14,21,28,42)
             GROUP BY h.benId
             HAVING COUNT(DISTINCT h.homeVisitDate) >= 7
