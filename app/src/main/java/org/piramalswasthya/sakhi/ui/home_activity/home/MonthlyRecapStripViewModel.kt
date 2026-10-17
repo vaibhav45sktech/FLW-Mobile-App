@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.piramalswasthya.sakhi.helpers.MonthlyRecapAvailabilityProvider
 import org.piramalswasthya.sakhi.helpers.RecapStoryGate
+import org.piramalswasthya.sakhi.model.RecapStatus
 import org.piramalswasthya.sakhi.model.recapStatus
 import org.piramalswasthya.sakhi.repositories.MonthlyRecapRepo
 import javax.inject.Inject
@@ -52,11 +53,18 @@ class MonthlyRecapStripViewModel @Inject constructor(
             .flatMapLatest { recapRepo.observeCurrentRecap() }
             .flatMapLatest { recap ->
                 flow {
-                    val visible = availability.isAvailable() && storyGate.hasStory()
+                    val status = recap?.recapStatus()
+                    val hasStory = storyGate.hasStory()
+                    // Ready/Resume need the active window (or test cohort).
+                    // Watch again stays after day 7 once she has COMPLETED.
+                    val visible = hasStory && (
+                        availability.isAvailable() ||
+                            (status == RecapStatus.COMPLETED && availability.isReplayAvailable())
+                        )
                     emit(
                         stripStateFor(
                             available = visible,
-                            status = recap?.recapStatus(),
+                            status = status,
                         )
                     )
                 }

@@ -162,9 +162,13 @@ class BadgeFactsReader @Inject constructor(
 
     /**
      * Maternal Journey: distinct completed journeys — registered pregnancy with
-     * ≥4 ANC visits (structured + dynamic history aggregated) ending in an
-     * institutional delivery. First-trimester check applies only when an
-     * INTEGER ANC date column is resolvable.
+     * ≥4 ANC visits (structured + dynamic history aggregated) ending in a
+     * facility / institutional delivery. There is no dropdown value literally
+     * named "Institutional Delivery"; facility options such as District Hospital,
+     * PHC, CHC, etc. qualify. Home and In Transit do NOT. Place values are matched
+     * against the English `do_place_of_delivery_array` strings that
+     * DeliveryOutcomeDataset persists. First-trimester check applies only when
+     * an INTEGER ANC date column is resolvable.
      */
     fun completedMaternalJourneys(): List<String> = safely("maternalJourneys", emptyList()) {
         if (!tableExists("PREGNANCY_REGISTER") || !tableExists("DELIVERY_OUTCOME")) {
@@ -186,12 +190,18 @@ class BadgeFactsReader @Inject constructor(
                         "AND t.ancDate <= pr.lmp + $trimesterMs)"
             } else ""
 
+        // Explicit institutional whitelist (English stored values). Excludes Home
+        // and In Transit — a bare "not home" check was too loose and let non-
+        // institutional / locale leftovers through.
+        val institutionalPlaces = INSTITUTIONAL_PLACES_OF_DELIVERY.joinToString(",") {
+            "'${it.lowercase().replace("'", "''")}'"
+        }
+
         queryStrings(
             """
             SELECT DISTINCT pr.benId FROM PREGNANCY_REGISTER pr
             JOIN DELIVERY_OUTCOME d ON d.benId = pr.benId
-            WHERE IFNULL(d.placeOfDelivery, '') != ''
-              AND LOWER(d.placeOfDelivery) NOT LIKE '%home%'
+            WHERE LOWER(TRIM(IFNULL(d.placeOfDelivery, ''))) IN ($institutionalPlaces)
               ${draftFilter("PREGNANCY_REGISTER", "pr")}
               ${draftFilter("DELIVERY_OUTCOME", "d")}
               AND (($ancStructured) + ($ancDynamic)) >= 4
@@ -201,26 +211,43 @@ class BadgeFactsReader @Inject constructor(
     }
 
     /**
-     * Child Fully Protected: beneficiaries whose administered doses cover every
-     * CHILD vaccine expected within the 0–1 year schedule.
+     * Child Fully Protected: each child [beneficiaryId] whose administered doses
+     * cover every CHILD vaccine in the 0–1 year dose stages (BIRTH … MONTH_9_12).
+     *
+     * Counting is strictly per child id — twins / multiple live births under the
+     * same mother each contribute +1 when that child's own schedule is complete.
+     * Stages use [Vaccine.immunizationService] ordinals (Room default) and also
+     * accept enum-name TEXT leftovers so `expected` never silently becomes 0.
      */
     fun fullyImmunizedChildren(): List<String> = safely("fullyImmunized", emptyList()) {
         if (!tableExists("IMMUNIZATION") || !tableExists("VACCINE")) return@safely emptyList()
-        val oneYearMs = TimeUnit.DAYS.toMillis(365)
+        // ChildImmunizationCategory: BIRTH=0 … MONTH_9_12=4 (and name form if TEXT)
+        val firstYearStages =
+            "(v.immunizationService IN (0, 1, 2, 3, 4) OR UPPER(CAST(v.immunizationService AS TEXT)) IN (" +
+                    "'BIRTH','WEEK_6','WEEK_10','WEEK_14','MONTH_9_12','0','1','2','3','4'))"
+        // ImmunizationCategory.CHILD ordinal 0; raw SQL also accepts the legacy string
+        val childCategory = "(v.category = 0 OR v.category = 'CHILD')"
         val expected = queryLong(
-            "SELECT COUNT(*) FROM VACCINE WHERE category = 'CHILD' AND maxAllowedAgeInMillis <= $oneYearMs"
+            "SELECT COUNT(*) FROM VACCINE v WHERE $childCategory AND $firstYearStages"
         )
-        if (expected == 0L) return@safely emptyList()
-        queryStrings(
+        if (expected == 0L) {
+            Timber.w("Badges: fullyImmunized expected=0 — VACCINE stages unresolved")
+            return@safely emptyList()
+        }
+        val ids = queryStrings(
             """
             SELECT i.beneficiaryId FROM IMMUNIZATION i
             JOIN VACCINE v ON v.vaccineId = i.vaccineId
-            WHERE v.category = 'CHILD' AND v.maxAllowedAgeInMillis <= $oneYearMs
+            WHERE $childCategory AND $firstYearStages
               AND i.date IS NOT NULL
             GROUP BY i.beneficiaryId
             HAVING COUNT(DISTINCT i.vaccineId) >= $expected
             """.trimIndent()
         )
+        Timber.d("Badges: fullyImmunized expected=$expected children=${ids.size}")
+        // Defensive distinct — GROUP BY already unique; keeps twins from collapsing
+        // if a future join ever re-introduces duplicate mother/household keys.
+        ids.distinct()
     }
 
     /** Digital Identity: beneficiaries with a valid generated ABHA. */
@@ -308,6 +335,22 @@ class BadgeFactsReader @Inject constructor(
     companion object {
         private val DATE_COLUMN_CANDIDATES =
             listOf("createddate", "createdat", "updateddate", "updatedat", "date", "visitdate")
+
+        /**
+         * English Place of Delivery values that count as institutional
+         * (`R.array.do_place_of_delivery_array`). Home and In Transit are omitted.
+         */
+        private val INSTITUTIONAL_PLACES_OF_DELIVERY = listOf(
+            "District Hospital",
+            "Community Health Centre",
+            "Primary Health Centre",
+            "Sub Centre",
+            "Other Public Facility",
+            "Accredited Private Hospital",
+            "Other Private Hospital",
+            "Sub District Hospital",
+            "Medical College Hospital",
+        )
 
         /** Complete Worker domains (LLD §1.1): Child, Maternal, Immunization, FP, Disease. */
         private val DOMAIN_TABLES = mapOf(

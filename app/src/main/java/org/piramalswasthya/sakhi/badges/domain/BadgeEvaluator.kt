@@ -207,7 +207,9 @@ class BadgeEvaluator @Inject constructor(
     companion object {
         private const val CELEBRATION_CHANNEL_ID = "badge_celebration"
         private const val CELEBRATION_ID = 20003
-        private const val RUN_THROTTLE_MS = 10_000L
+        // Trailing-edge throttle: short enough that a save right after launch still
+        // awards within ~2s, long enough to coalesce burst writes.
+        private const val RUN_THROTTLE_MS = 1_500L
 
         // ponytail: 2-year quarterly backfill; raise if older history matters
         private const val PAST_QUARTERS_LOOKBACK = 8
@@ -346,22 +348,26 @@ class BadgeEvaluator @Inject constructor(
                     BadgeIds.CRITICAL_REFERRAL -> facts.nrcReferredChildren()
                     else -> emptyList()
                 }
+                val count = cases.size.toLong()
+                val level = milestones.count { count >= it }
                 states += BadgeStateCache(
                     userId = userId,
                     badgeId = def.id,
-                    currentLevel = if (cases.isEmpty()) 0 else 1,
-                    progress = cases.size.toLong(),
-                    nextTarget = milestones.first(),
+                    currentLevel = level,
+                    progress = count,
+                    nextTarget = milestones.firstOrNull { count < it } ?: milestones.last(),
                     lastEvaluatedAt = now
                 )
-                for (case in cases) {
+                for ((index, case) in cases.withIndex()) {
                     // One recognition per beneficiary. The beneficiary id is hashed here, at
                     // the point the award is made, rather than on the way to the server: the
                     // digest is then the only form of the key that exists, so the local
                     // uniqueness constraint and the server's agree and a restored award is
                     // the same row as the one evaluation would derive (AwardKeys).
+                    // Level mirrors how many milestone tiers this Nth case unlocks (1-based).
+                    val caseLevel = milestones.count { (index + 1L) >= it }.coerceAtLeast(1)
                     earned += BadgeEarnedCache(
-                        userId = userId, badgeId = def.id, level = 1,
+                        userId = userId, badgeId = def.id, level = caseLevel,
                         caseRef = AwardKeys.forCase(case), earnedAt = now
                     )
                 }

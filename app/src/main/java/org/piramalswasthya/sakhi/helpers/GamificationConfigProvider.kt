@@ -46,6 +46,8 @@ class GamificationConfigProvider @Inject constructor() {
     companion object {
         const val KEY_MASTER_ENABLED = "gamification_master_enabled"
         const val KEY_PILOT_USER_IDS = "gamification_pilot_user_ids"
+        /** Comma-separated userIds for a small QA cohort (window bypass, etc.). */
+        const val KEY_TEST_COHORT_USER_IDS = "gamification_test_cohort_user_ids"
     }
 
     private val remoteConfig: FirebaseRemoteConfig by lazy {
@@ -73,7 +75,8 @@ class GamificationConfigProvider @Inject constructor() {
      * as false and waiting out the one-hour fetch interval.
      */
     fun primeAsync() {
-        if (BuildConfig.DEBUG) return // debug never reads Remote Config at all
+        // Always fetch so UAT/debug QA builds pick up test-cohort / pilot lists from
+        // the console. [isMechanicEnabled] still forces every mechanic ON in DEBUG.
         remoteConfig.fetchAndActivate()
             .addOnCompleteListener { task ->
                 if (!task.isSuccessful) {
@@ -100,15 +103,28 @@ class GamificationConfigProvider @Inject constructor() {
 
     /** Empty allowlist = everyone (the intended state for full go-live). */
     private fun isUserInPilot(userId: Int?): Boolean {
-        val raw = try {
-            remoteConfig.getString(KEY_PILOT_USER_IDS)
-        } catch (e: Exception) {
-            Timber.e(e, "GamificationConfigProvider: bad $KEY_PILOT_USER_IDS")
-            return false // malformed allowlist must never silently mean "everyone"
-        }
-        val ids = raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        val ids = parseIdList(KEY_PILOT_USER_IDS) ?: return false
         if (ids.isEmpty()) return true
         return userId != null && userId.toString() in ids
+    }
+
+    /**
+     * True when [userId] is listed in [KEY_TEST_COHORT_USER_IDS]. Empty list =
+     * nobody (unlike the pilot allowlist, which treats empty as everyone).
+     * Used to bypass the Monthly Recap days 1–7 window for a small QA cohort.
+     */
+    fun isTestCohortUser(userId: Int?): Boolean {
+        val ids = parseIdList(KEY_TEST_COHORT_USER_IDS) ?: return false
+        if (ids.isEmpty()) return false
+        return userId != null && userId.toString() in ids
+    }
+
+    /** Null on parse failure (fail closed); empty list when the key is blank. */
+    private fun parseIdList(key: String): List<String>? = try {
+        remoteConfig.getString(key).split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    } catch (e: Exception) {
+        Timber.e(e, "GamificationConfigProvider: bad $key")
+        null
     }
 
     private fun safeBool(key: String): Boolean = try {
